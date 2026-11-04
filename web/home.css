@@ -635,6 +635,18 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .calm #sky canvas, .calm #sky .veil { display: none; }
 .calm #sky .day { background: -webkit-linear-gradient(top, #F4F1EC, #E3E6EE); background: linear-gradient(#F4F1EC, #E3E6EE); }
 .calm #sky .night { background: -webkit-linear-gradient(top, #1D1E24, #0D0E11); background: linear-gradient(#1D1E24, #0D0E11); }
+.calm.snowy #sky .day { background: -webkit-linear-gradient(top, #E7F2FA, #C4D5E5); background: linear-gradient(#E7F2FA, #C4D5E5); }
+.calm.snowy #sky .night { background: -webkit-linear-gradient(top, #172738, #0B1420); background: linear-gradient(#172738, #0B1420); }
+.calm.sunny #sky .day { background: -webkit-linear-gradient(top, #DDEFFC, #FFF0CF); background: linear-gradient(#DDEFFC, #FFF0CF); }
+.calm.sunny #sky .night { background: -webkit-linear-gradient(top, #242435, #14121B); background: linear-gradient(#242435, #14121B); }
+.snowflakes, .sunshine { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: none; overflow: hidden; pointer-events: none; }
+.calm.snowy .snowflakes, .calm.sunny .sunshine { display: block; }
+.snowflake { position: absolute; top: -60px; -webkit-animation: leaf-fall linear infinite; animation: leaf-fall linear infinite; }
+.snowflake .sway { -webkit-animation: leaf-sway ease-in-out infinite alternate; animation: leaf-sway ease-in-out infinite alternate; }
+.snowflake .crystal { border-radius: 50%; background: #FFF; opacity: 0.9; }
+.night .snowflake .crystal { opacity: 0.65; }
+.sun-disc { position: absolute; right: 370px; top: 60px; width: 180px; height: 180px; border-radius: 90px; background: #FFCF68; box-shadow: 0 0 0 24px rgba(255,207,104,0.14), 0 0 0 62px rgba(255,207,104,0.06); }
+.night .sunshine, .lite .snowflakes { display: none !important; }
 
 .calm #clock { display: block; left: 0; width: 1920px; top: 250px; text-align: center; font-size: 210px; font-weight: 200; }
 .calm #clock .date { margin-top: 26px; font-size: 38px; font-weight: 400; letter-spacing: 0.01em; }

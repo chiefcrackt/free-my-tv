@@ -23,6 +23,7 @@ if [ "$what" = all ] || [ "$what" = android ]; then
 fi
 
 if [ "$what" = all ] || [ "$what" = web ]; then
+  node tests/seasonal-sky.cjs
   python3 tools/translate.py --check
 
   # The generic LG and Samsung packages land where your own build leaves yours (with your city and TMDB key):

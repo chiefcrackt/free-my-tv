@@ -1500,6 +1500,7 @@
   var lastNight = null;
 
   function checkNight() {
+    updateWeatherBackdrop();
     var night = Data.isNight(Date.now());
     setClass(body, 'night', night);
     if (night === lastNight) return;
@@ -1643,11 +1644,35 @@
     return true;
   }
 
-  // MARK: - Falling leaves (the calm look): every autumn, from September 1 until December 1
+  // MARK: - Temperature-driven Home background (the calm look)
 
   var LEAF_COLORS = ['#D9822B', '#C4532D', '#E0A43A', '#A8452A', '#CF6F2E'];
 
-  function autumn() { var m = new Date().getMonth(); return m >= 8 && m <= 10; }
+  function updateWeatherBackdrop() {
+    var w = Data.weather, mode = CALM ? SeasonalSky.pick(w ? w.temp : null, new Date().getMonth()) : 'neutral';
+    setClass(body, 'autumn', mode === 'autumn');
+    setClass(body, 'snowy', mode === 'snowy');
+    setClass(body, 'sunny', mode === 'sunny');
+    body.setAttribute('data-backdrop', mode);
+  }
+
+  function makeWeatherEffects() {
+    var sky = $('sky'), snow = el('div', 'snowflakes'), sun = el('div', 'sunshine');
+    snow.setAttribute('aria-hidden', 'true');
+    sun.setAttribute('aria-hidden', 'true');
+    sky.insertBefore(snow, sky.querySelector('.lift'));
+    sky.insertBefore(sun, sky.querySelector('.lift'));
+    el('div', 'sun-disc', sun);
+    for (var i = 0; i < 24; i++) {
+      var flake = el('div', 'snowflake', snow), sway = el('div', 'sway', flake), crystal = el('div', 'crystal', sway);
+      var dur = 16 + Math.random() * 16, size = 4 + Math.round(Math.random() * 5);
+      flake.style.left = Math.round(Math.random() * 1880) + 'px';
+      flake.style.webkitAnimationDuration = flake.style.animationDuration = dur + 's';
+      flake.style.webkitAnimationDelay = flake.style.animationDelay = (-Math.random() * dur) + 's';
+      sway.style.webkitAnimationDuration = sway.style.animationDuration = (4 + Math.random() * 4) + 's';
+      crystal.style.width = crystal.style.height = size + 'px';
+    }
+  }
 
   /** A few leaves behind the clock and the shelf: each falls (CSS keyframes) while swaying, at its own pace. */
   function makeLeaves() {
@@ -1889,8 +1914,7 @@
 
   I18N.set(Prefs.language());
   setClass(body, 'calm', CALM);
-  if (CALM) { makeLeaves(); el('div', '', $('top')).id = 'nowwx'; }
-  setClass(body, 'autumn', CALM && autumn());
+  if (CALM) { makeLeaves(); makeWeatherEffects(); el('div', '', $('top')).id = 'nowwx'; }
   if (CALM && CONFIG.greeting) { el('div', 'greeting', $('top'), CONFIG.greeting); setClass(body, 'greeted', true); }
   checkNight();   // now, from the last forecast: not after the TV lists its apps, with the day look until then
   // LG's screensaver waits only when ours will show: not under a sheet (ours waits there), and not without photos.
@@ -1909,7 +1933,6 @@
     checkNight();
     Data.refresh();
     applyDim();   // automatic: medium from 22:00, off again at 07:00
-    setClass(body, 'autumn', CALM && autumn());   // the leaves stop on December 1
     if (!saverOn && !ambientOn && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) {
       if (saverMode() === 'clock') showAmbient(); else showSaver();
     }

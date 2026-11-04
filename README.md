@@ -311,6 +311,14 @@ while paused keeps the music off. The clock, weather, greeting and autumn leaves
 These streams do not supply track titles, album artwork or a track duration to the app, so the card shows a record
 illustration and station name. It does not monitor music playing in other Samsung apps.
 
+### Temperature-driven background on Samsung
+
+The calm Home background follows the current local forecast: below 33°F shows a cool sky with gently falling snow;
+above 60°F shows a warm sunny sky; 33°F through 60°F keeps the fall leaves. Thresholds stay in Fahrenheit even if the
+temperature display is set to Celsius. The existing forecast refresh updates the look automatically (normally every
+30 minutes), without another data source. Until weather is available, the previous calendar-based autumn/default
+look is used. Night mode retains a dark palette and hides the decorative sun.
+
 ### Dinosaur visitors on Samsung
 
 The turquoise raptor, orange T. rex, purple long-neck, Tristan and Travis take turns crossing Home and both screensavers.
