@@ -311,6 +311,20 @@ while paused keeps the music off. The clock, weather, greeting and autumn leaves
 These streams do not supply track titles, album artwork or a track duration to the app, so the card shows a record
 illustration and station name. It does not monitor music playing in other Samsung apps.
 
+### Dinosaur visitors on Samsung
+
+The turquoise raptor, orange T. rex and purple long-neck take turns walking across Home and both screensavers.
+On Home their entire 128-pixel frame stays above the app shelf and below the weather. On a screensaver they cross
+near the bottom, away from its clock and weather. Each walk lasts 18 seconds, with a 90-second quiet gap; the first
+visitor arrives about 8 seconds after opening Home or a screensaver. Visitors stop immediately under the drawer or
+settings, and when another app is in front. They do not take focus, intercept remote keys or reset the idle timer.
+
+`web/dinosaurs.js` controls the local six-frame PNG sheets (3 columns × 2 rows, 512 × 512 pixels per frame).
+The sheets were generated from the three approved character designs with the built-in image-generation tool;
+they add no network requests. Browser regression checks are in `tests/dinosaurs.cjs`: build with
+`python3 tizen/build.py --preview`, then run the test with `playwright-core` and Chrome installed
+(`DINOSAUR_PLAYWRIGHT_MODULE` and `DINOSAUR_CHROME` can supply their locations).
+
 It's your code, and Claude Code finds its way around it. Try:
 
 - *"Add Crunchyroll to the shelf."*

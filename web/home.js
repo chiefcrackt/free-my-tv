@@ -331,6 +331,11 @@
 
   function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.ABOUT; }
 
+  function updateDinosaurs() {
+    if (window.DinoWalk) DinoWalk.setMode(!CALM || document.hidden ? null : saverOn ? 'saver' : ambientOn ? 'ambient'
+      : st.zone === Z.DRAWER || sheetOpen() ? null : 'home');
+  }
+
   function updateFocus() {
     var i, list;
     list = document.querySelectorAll('#musiccard button');
@@ -362,6 +367,7 @@
     focusRows($('citypick'), st.city, st.zone === Z.CITY);
     focusRows($('keypick'), st.key, st.zone === Z.KEY);
     setClass(body, 'drawer-open', st.zone === Z.DRAWER);
+    updateDinosaurs();
     followSoon();
   }
 
@@ -1534,6 +1540,7 @@
   function showSaver() {
     var photos = saverPhotos();
     saverOn = true;
+    updateDinosaurs();
     saverPick = null;
     var s = $('saver');
     s.innerHTML = '';
@@ -1579,6 +1586,7 @@
 
   function hideSaver() {
     saverOn = false;
+    updateDinosaurs();
     clearTimeout(saverTimer);
     setClass($('saver'), 'on', false);
   }
@@ -1598,6 +1606,7 @@
     el('div', 'temp', side);
     el('div', 'cond', side);
     ambientOn = true;
+    updateDinosaurs();
     setClass(a, 'on', true);
     ambientTimer = setInterval(tickAmbient, 30000);
     tickAmbient();
@@ -1619,6 +1628,7 @@
 
   function hideAmbient() {
     ambientOn = false;
+    updateDinosaurs();
     clearInterval(ambientTimer);
     setClass($('ambient'), 'on', false);
   }
@@ -1870,6 +1880,7 @@
   document.addEventListener('webOSRelaunch', reopened);   // LG: opened again while running
   window.addEventListener('appcontrol', reopened);        // Samsung: the same
   document.addEventListener('visibilitychange', function () {
+    updateDinosaurs();
     if (document.hidden) { hideSaver(); hideAmbient(); stopLofi(); return; }
     idleAt = Date.now();
     playLofi();
