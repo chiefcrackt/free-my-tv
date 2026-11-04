@@ -1,9 +1,15 @@
-/* The three approved pixel dinosaurs take turns above the Samsung shelf and on both screensavers. No network or keys. */
+/* Dinosaurs and the original In Motion runners take turns on Home and both screensavers. No network or keys. */
 (function () {
   'use strict';
 
-  var FILES = ['dino-raptor.png', 'dino-trex.png', 'dino-longneck.png'];
-  var SIZE = 128, FRAME_MS = 125, WALK_MS = 18000, FIRST_MS = 8000, GAP_MS = 90000;
+  var VISITORS = [
+    {file: 'dino-raptor.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
+    {file: 'dino-trex.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
+    {file: 'dino-longneck.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
+    {file: 'runner-tristan.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true},
+    {file: 'runner-travis.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true}
+  ];
+  var SIZE = 128, FIRST_MS = 8000, GAP_MS = 90000;
   var active = null, generation = 0, next = 0, timer = 0, frames = 0, actor = null, sprite = null, image = null;
 
   function clear() {
@@ -20,12 +26,12 @@
 
   function walk() {
     if (!active) return;
-    var mine = ++generation, file = FILES[next];
+    var mine = ++generation, visitor = VISITORS[next], file = visitor.file;
     image = new Image();
     image.onload = function () {
       if (!active || mine !== generation) return;
-      // All three sheets are six frames in an exact 3-column, 2-row grid.
-      if (!image.naturalWidth || image.naturalWidth / 3 !== image.naturalHeight / 2) {
+      // The dinosaurs use 3x2 sheets; original-rig runner exports use 4x4 sheets.
+      if (!image.naturalWidth || image.naturalWidth / visitor.columns !== image.naturalHeight / visitor.rows) {
         clear();
         schedule(GAP_MS);
         return;
@@ -45,24 +51,26 @@
       actor.style.webkitTransition = actor.style.transition = 'none';
       actor.style.webkitTransform = actor.style.transform = 'translateX(-' + SIZE + 'px)';
       sprite.style.backgroundImage = 'url(' + file + ')';
+      sprite.style.backgroundSize = (visitor.columns * SIZE) + 'px ' + (visitor.rows * SIZE) + 'px';
+      sprite.style.imageRendering = visitor.smooth ? 'auto' : 'pixelated';
       sprite.style.backgroundPosition = '0px 0px';
       actor.style.display = 'block';
       void actor.offsetWidth;
-      actor.style.webkitTransition = '-webkit-transform ' + WALK_MS + 'ms linear';
-      actor.style.transition = 'transform ' + WALK_MS + 'ms linear';
+      actor.style.webkitTransition = '-webkit-transform ' + visitor.duration + 'ms linear';
+      actor.style.transition = 'transform ' + visitor.duration + 'ms linear';
       actor.style.webkitTransform = actor.style.transform = 'translateX(1920px)';
       var started = Date.now();
       frames = setInterval(function () {
         if (!active || mine !== generation) return;
-        var frame = Math.floor((Date.now() - started) / FRAME_MS) % 6;
-        sprite.style.backgroundPosition = (-(frame % 3) * SIZE) + 'px ' + (-Math.floor(frame / 3) * SIZE) + 'px';
-      }, FRAME_MS);
+        var frame = Math.floor((Date.now() - started) / visitor.frameMs) % visitor.count;
+        sprite.style.backgroundPosition = (-(frame % visitor.columns) * SIZE) + 'px ' + (-Math.floor(frame / visitor.columns) * SIZE) + 'px';
+      }, visitor.frameMs);
       timer = setTimeout(function () {
         if (!active || mine !== generation) return;
         clear();
-        next = (next + 1) % FILES.length;
+        next = (next + 1) % VISITORS.length;
         schedule(GAP_MS);
-      }, WALK_MS);
+      }, visitor.duration);
     };
     image.onerror = function () {
       if (!active || mine !== generation) return;

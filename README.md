@@ -313,15 +313,19 @@ illustration and station name. It does not monitor music playing in other Samsun
 
 ### Dinosaur visitors on Samsung
 
-The turquoise raptor, orange T. rex and purple long-neck take turns walking across Home and both screensavers.
+The turquoise raptor, orange T. rex, purple long-neck, Tristan and Travis take turns crossing Home and both screensavers.
 On Home their entire 128-pixel frame stays above the app shelf and below the weather. On a screensaver they cross
-near the bottom, away from its clock and weather. Each walk lasts 18 seconds, with a 90-second quiet gap; the first
+near the bottom, away from its clock and weather. Dinosaur walks last 18 seconds and runner crossings last 12 seconds,
+with a 90-second quiet gap; the first
 visitor arrives about 8 seconds after opening Home or a screensaver. Visitors stop immediately under the drawer or
 settings, and when another app is in front. They do not take focus, intercept remote keys or reset the idle timer.
 
 `web/dinosaurs.js` controls the local six-frame PNG sheets (3 columns × 2 rows, 512 × 512 pixels per frame).
-The sheets were generated from the three approved character designs with the built-in image-generation tool;
-they add no network requests. Browser regression checks are in `tests/dinosaurs.cjs`: build with
+The dinosaur sheets were generated from the three approved character designs with the built-in image-generation tool.
+Tristan and Travis use the original artwork and running rig from `chiefcrackt/links-inMotion` at commit
+`c2200ec0543d3a57290ef01af124a278a2186a96`, exported as 16-frame 4 × 4 PNG sheets (256-pixel frames, 32 fps).
+They preserve the original character artwork rather than redrawing it, and add no network requests.
+Browser regression checks are in `tests/dinosaurs.cjs`: build with
 `python3 tizen/build.py --preview`, then run the test with `playwright-core` and Chrome installed
 (`DINOSAUR_PLAYWRIGHT_MODULE` and `DINOSAUR_CHROME` can supply their locations).
 

@@ -93,8 +93,20 @@ const assert = require('assert/strict');
     assert.equal(await actor.evaluate(node => node.parentNode.id), 'saver');
     await page.clock.runFor(108000);
     await actor.waitFor({state: 'visible'});
+    assert.match(await image(), /runner-tristan/, 'Tristan follows the three dinosaurs');
+    assert.equal(await sprite.evaluate(node => node.style.backgroundSize), '512px 512px');
+    assert.equal(await sprite.evaluate(node => node.style.imageRendering), 'auto');
+    const runnerFrame = await sprite.evaluate(node => node.style.backgroundPosition);
+    await page.clock.runFor(126);
+    assert.notEqual(await sprite.evaluate(node => node.style.backgroundPosition), runnerFrame, '16-frame running cycle advances');
+    await page.clock.runFor(102000);
+    await actor.waitFor({state: 'visible'});
+    assert.match(await image(), /runner-travis/, 'Travis follows Tristan');
+    assert.equal(await actor.count(), 1);
+    await page.clock.runFor(102000);
+    await actor.waitFor({state: 'visible'});
     assert.match(await image(), /dino-raptor/, 'rotation continues and wraps on the screensaver');
-    await page.evaluate(() => FreeMyTV.hideSaver());
+    await page.keyboard.press('ArrowRight'); // a real wake also resets the idle timer after the longer five-visitor cycle
 
     // A background app has no walking timers, and returns to the normal Home lane when opened again.
     await page.evaluate(() => {
@@ -112,7 +124,7 @@ const assert = require('assert/strict');
     assert.equal(await actor.evaluate(node => node.parentNode.id), 'home');
     assert.equal(await actor.count(), 1);
     assert.deepEqual(errors, []);
-    console.log('Dinosaurs: frame advance, exclusive rotation/wrap, shelf/weather clearance, drawer suppression, both screensavers, and visibility lifecycle passed.');
+    console.log('Visitors: dinosaur and runner frame advance, five-character rotation/wrap, shelf/weather clearance, drawer suppression, both screensavers, and visibility lifecycle passed.');
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));
