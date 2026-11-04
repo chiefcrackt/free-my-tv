@@ -318,6 +318,8 @@ above 60°F shows a warm sunny sky; 33°F through 60°F keeps the fall leaves. T
 temperature display is set to Celsius. The existing forecast refresh updates the look automatically (normally every
 30 minutes), without another data source. Until weather is available, the previous calendar-based autumn/default
 look is used. Night mode retains a dark palette and hides the decorative sun.
+Reported drizzle, rain, showers and thunderstorms replace the fall/sunny looks with a cloudy sky and falling rain.
+Below 33°F still uses snow; reported snow also uses the snow look even slightly above freezing.
 
 ### Dinosaur visitors on Samsung
 

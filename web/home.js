@@ -1649,19 +1649,22 @@
   var LEAF_COLORS = ['#D9822B', '#C4532D', '#E0A43A', '#A8452A', '#CF6F2E'];
 
   function updateWeatherBackdrop() {
-    var w = Data.weather, mode = CALM ? SeasonalSky.pick(w ? w.temp : null, new Date().getMonth()) : 'neutral';
+    var w = Data.weather, mode = CALM ? SeasonalSky.pick(w ? w.temp : null, new Date().getMonth(), w ? w.code : null) : 'neutral';
     setClass(body, 'autumn', mode === 'autumn');
     setClass(body, 'snowy', mode === 'snowy');
+    setClass(body, 'rainy', mode === 'rainy');
     setClass(body, 'sunny', mode === 'sunny');
     body.setAttribute('data-backdrop', mode);
   }
 
   function makeWeatherEffects() {
-    var sky = $('sky'), snow = el('div', 'snowflakes'), sun = el('div', 'sunshine');
+    var sky = $('sky'), snow = el('div', 'snowflakes'), sun = el('div', 'sunshine'), rain = el('div', 'rainfall');
     snow.setAttribute('aria-hidden', 'true');
     sun.setAttribute('aria-hidden', 'true');
+    rain.setAttribute('aria-hidden', 'true');
     sky.insertBefore(snow, sky.querySelector('.lift'));
     sky.insertBefore(sun, sky.querySelector('.lift'));
+    sky.insertBefore(rain, sky.querySelector('.lift'));
     el('div', 'sun-disc', sun);
     for (var i = 0; i < 24; i++) {
       var flake = el('div', 'snowflake', snow), sway = el('div', 'sway', flake), crystal = el('div', 'crystal', sway);
@@ -1671,6 +1674,13 @@
       flake.style.webkitAnimationDelay = flake.style.animationDelay = (-Math.random() * dur) + 's';
       sway.style.webkitAnimationDuration = sway.style.animationDuration = (4 + Math.random() * 4) + 's';
       crystal.style.width = crystal.style.height = size + 'px';
+    }
+    for (var j = 0; j < 28; j++) {
+      var drop = el('div', 'raindrop', rain), speed = 0.85 + Math.random() * 0.65;
+      drop.style.left = (100 + Math.round(Math.random() * 1980)) + 'px';
+      drop.style.height = (14 + Math.round(Math.random() * 12)) + 'px';
+      drop.style.webkitAnimationDuration = drop.style.animationDuration = speed + 's';
+      drop.style.webkitAnimationDelay = drop.style.animationDelay = (-Math.random() * speed) + 's';
     }
   }
 

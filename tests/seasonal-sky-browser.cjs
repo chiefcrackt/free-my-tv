@@ -11,7 +11,7 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin='http://127.0.0.1:'+server.address().port;
- let browser,tempF=32,requests=0;
+ let browser,tempF=32,weatherCode=1,requests=0,changes=0;
  try{
   browser=await chromium.launch({executablePath:process.env.DINOSAUR_CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
   const page=await browser.newPage({viewport:{width:1920,height:1080}}),errors=[];
@@ -22,7 +22,7 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
    if(url.includes('api.open-meteo.com/v1/forecast')) {
     requests++;
     return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({
-     utc_offset_seconds:0,current:{temperature_2m:(tempF-32)*5/9,weather_code:1,is_day:1},
+     utc_offset_seconds:0,current:{temperature_2m:(tempF-32)*5/9,weather_code:weatherCode,is_day:1},
      daily:{temperature_2m_max:[20],temperature_2m_min:[-5],sunrise:['2026-11-04T06:00'],sunset:['2026-11-04T18:00'],time:['2026-11-04'],weather_code:[1]},
      hourly:{time:[],temperature_2m:[],weather_code:[],is_day:[]}
     })});
@@ -44,11 +44,12 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
   assert.equal(await page.locator('.leaves').isVisible(),false);
   if(process.env.SKY_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.SKY_SCREENSHOT_DIR,'snow-background-preview.png')});
   async function temperature(f,mode){
+   changes++;
    tempF=f;await page.evaluate(()=>Data.cityChanged());
-   await page.waitForFunction(c=>Data.weather&&Math.abs(Data.weather.temp-c)<1e-8,(f-32)*5/9);
+   await page.waitForFunction(v=>Data.weather&&Math.abs(Data.weather.temp-v.c)<1e-8&&Data.weather.code===v.code,{c:(f-32)*5/9,code:weatherCode});
    assert.equal(await page.locator('body').getAttribute('data-backdrop'),mode);
    const classes=await page.locator('body').getAttribute('class');
-   assert.equal(classes.split(/\s+/).filter(c=>['snowy','sunny','autumn'].includes(c)).length,1);
+   assert.equal(classes.split(/\s+/).filter(c=>['snowy','sunny','autumn','rainy'].includes(c)).length,1);
   }
   await temperature(33,'autumn');
   assert.equal(await page.locator('.leaves').isVisible(),true);
@@ -58,6 +59,17 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
   assert.equal(await page.locator('.sunshine').isVisible(),true);
   assert.equal(await page.locator('.leaves').isVisible(),false);
   if(process.env.SKY_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.SKY_SCREENSHOT_DIR,'sunny-background-preview.png')});
+  weatherCode=61;await temperature(61,'rainy');
+  assert.equal(await page.locator('.rainfall').isVisible(),true);
+  assert.equal(await page.locator('.raindrop').count(),28);
+  assert.equal(await page.locator('.sunshine').isVisible(),false);
+  if(process.env.SKY_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.SKY_SCREENSHOT_DIR,'rain-background-preview.png')});
+  weatherCode=51;await temperature(45,'rainy');
+  weatherCode=95;await temperature(65,'rainy');
+  weatherCode=45;await temperature(65,'sunny');
+  weatherCode=61;await temperature(32,'snowy');
+  assert.equal(await page.locator('.rainfall').isVisible(),false);
+  weatherCode=1;await temperature(61,'sunny');
   await page.evaluate(()=>{Prefs.set('temperature','C');Data.settingsChanged();});
   assert.equal(await page.locator('body').getAttribute('data-backdrop'),'sunny');
   await page.evaluate(()=>{Prefs.set('theme','dark');Data.settingsChanged();});
@@ -66,7 +78,7 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
   await temperature(31,'snowy');
   assert.equal(await page.locator('.snowflakes').isVisible(),true);
   assert(await page.locator('body').evaluate(b=>b.classList.contains('night')));
-  assert.equal(requests,5,'only the existing forecast path is used');
+  assert.equal(requests,1+changes,'only the existing forecast path is used');
   assert.deepEqual(errors,[]);
   console.log('Seasonal sky browser: live temperature transitions, threshold boundaries, exclusive layers, Celsius display and night behavior passed.');
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

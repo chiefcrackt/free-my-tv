@@ -647,6 +647,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .night .snowflake .crystal { opacity: 0.65; }
 .sun-disc { position: absolute; right: 370px; top: 60px; width: 180px; height: 180px; border-radius: 90px; background: #FFCF68; box-shadow: 0 0 0 24px rgba(255,207,104,0.14), 0 0 0 62px rgba(255,207,104,0.06); }
 .night .sunshine, .lite .snowflakes { display: none !important; }
+.calm.rainy #sky .day { background: -webkit-linear-gradient(top, #D3DCE5, #AABACB); background: linear-gradient(#D3DCE5, #AABACB); }
+.calm.rainy #sky .night { background: -webkit-linear-gradient(top, #18202B, #0C111B); background: linear-gradient(#18202B, #0C111B); }
+.rainfall { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: none; overflow: hidden; pointer-events: none; }
+.calm.rainy .rainfall { display: block; }
+.raindrop { position: absolute; top: -60px; width: 2px; border-radius: 1px; background: #557C9B; opacity: 0.45; -webkit-animation: rain-fall linear infinite; animation: rain-fall linear infinite; }
+.night .raindrop { background: #B2CFDF; opacity: 0.35; }
+.lite .rainfall { display: none !important; }
+@-webkit-keyframes rain-fall { from { -webkit-transform: translate(0, 0) rotate(9deg); } to { -webkit-transform: translate(-180px, 1180px) rotate(9deg); } }
+@keyframes rain-fall { from { transform: translate(0, 0) rotate(9deg); } to { transform: translate(-180px, 1180px) rotate(9deg); } }
 
 .calm #clock { display: block; left: 0; width: 1920px; top: 250px; text-align: center; font-size: 210px; font-weight: 200; }
 .calm #clock .date { margin-top: 26px; font-size: 38px; font-weight: 400; letter-spacing: 0.01em; }
