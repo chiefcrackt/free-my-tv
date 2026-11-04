@@ -16,6 +16,11 @@ speed while planted and swing forward with clearance; inverse kinematics keeps b
 `walk-manifest.json` records exported poses and each sprite's stride distance at the 128-pixel display size.
 The TV player uses that stride distance to tie frame playback to its actual horizontal crossing speed.
 
+The v3 proportions lower the intact bodies and shorten/thicken the limbs. The complete silhouette is kept below
+0.85 times its width, and the exported standing hip-to-ankle rise stays below 36 source pixels. This preserves the
+approved squat character shapes while retaining the same grounded stepping method. The taller v2 sheets remain
+in this authoring folder for comparison and are not packaged in the app.
+
 Regenerate with `node tools/export-dinosaur-walks.cjs` after making playwright-core and Chrome available
 (`DINOSAUR_PLAYWRIGHT_MODULE` and `DINOSAUR_CHROME` can provide their locations). Run `node tests/dinosaur-gait.cjs`
 and the browser visitor checks after regeneration.

@@ -4,9 +4,9 @@ const {chromium} = require(process.env.DINOSAUR_PLAYWRIGHT_MODULE || 'playwright
 const gait = require('./dinosaur-gait.cjs');
 const root = path.resolve(__dirname, '..');
 const specs = [
-  {name:'raptor', x:16, y:20, width:224, hip:[0.55,0.87], stride:70, duty:0.62, lift:27, upper:48, lower:46, widths:[28,15], foot:[32,19]},
-  {name:'trex', x:18, y:30, width:220, hip:[0.49,0.86], stride:70, duty:0.62, lift:26, upper:48, lower:46, widths:[34,19], foot:[35,21]},
-  {name:'longneck', x:16, y:45, width:224, hips:[[0.47,0.89],[0.72,0.87]], stride:54, duty:0.78, lift:17, upper:32, lower:32, widths:[22,19], foot:[26,15]}
+  {name:'raptor', x:16, y:70, width:224, hip:[0.55,0.87], stride:44, duty:0.62, lift:14, upper:26, lower:22, widths:[34,23], foot:[38,19]},
+  {name:'trex', x:18, y:80, width:220, hip:[0.49,0.86], stride:44, duty:0.62, lift:14, upper:27, lower:23, widths:[38,26], foot:[41,22]},
+  {name:'longneck', x:16, y:64, width:224, hips:[[0.47,0.89],[0.72,0.87]], stride:32, duty:0.78, lift:9, upper:20, lower:18, widths:[27,24], foot:[30,17]}
 ];
 (async () => {
   const browser = await chromium.launch({executablePath:process.env.DINOSAUR_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
@@ -72,10 +72,11 @@ const specs = [
         }
         return {png:sheet.toDataURL('image/png').split(',')[1],poses,bodyHeight};
       }, {spec,url});
-      const file='dino-'+spec.name+'-walk-v2.png';
+      const file='dino-'+spec.name+'-walk-v3.png';
       fs.writeFileSync(path.join(root,'web',file),Buffer.from(result.png,'base64'));
       const stridePixels=spec.stride/spec.duty*0.5;
-      manifests.push({file,columns:6,rows:4,count:24,duration:36000,stridePixels,poses:result.poses});
+      manifests.push({file,columns:6,rows:4,count:24,duration:36000,stridePixels,
+        silhouette:{width:spec.width,height:246-spec.y},poses:result.poses});
       console.log(spec.name+': 24 grounded frames, world stride '+stridePixels.toFixed(3)+'px; body height '+result.bodyHeight.toFixed(1));
     }
     fs.writeFileSync(path.join(root,'artwork/dinosaurs/walk-manifest.json'),JSON.stringify(manifests,null,2)+'\n');

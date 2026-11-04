@@ -1,7 +1,7 @@
 const assert = require('assert/strict');
 const {foot, knee} = require('../tools/dinosaur-gait.cjs');
 const manifest = require('../artwork/dinosaurs/walk-manifest.json');
-for (const [stride,duty,offsets] of [[70,0.62,[0,0.5]],[54,0.78,[0,0.75,0.5,0.25]]]) {
+for (const [stride,duty,offsets] of [[44,0.62,[0,0.5]],[32,0.78,[0,0.75,0.5,0.25]]]) {
   const planted=[];
   for(let i=0;i<1000;i++) {
     const p=i/1000, feet=offsets.map(offset=>foot(p+offset,stride,duty,25));
@@ -19,9 +19,13 @@ for (const [stride,duty,offsets] of [[70,0.62,[0,0.5]],[54,0.78,[0,0.75,0.5,0.25
 }
 for(const dino of manifest) {
   assert.equal(dino.poses.length,24);
+  assert(dino.silhouette.height/dino.silhouette.width<0.85,'dinosaur silhouette must retain squat proportions');
   dino.poses.forEach(legs=>{
     assert.equal(legs.length,dino.file.includes('longneck')?4:2);
-    legs.forEach(leg=>{if(leg.planted)assert(leg.ankle.y>=225&&leg.ankle.y<=235,'exported support feet share a grounded baseline');});
+    legs.forEach(leg=>{if(leg.planted){
+      assert(leg.ankle.y>=225&&leg.ankle.y<=235,'exported support feet share a grounded baseline');
+      assert(leg.ankle.y-leg.hip.y<36,'supporting legs must not stretch the body up on stilts');
+    }});
   });
 }
 console.log('Dinosaur gait: fixed bone lengths, grounded support, swing clearance, zero stance-foot sliding and exported leg counts passed.');

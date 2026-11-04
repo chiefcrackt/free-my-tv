@@ -3,9 +3,9 @@
   'use strict';
 
   var VISITORS = [
-    {file: 'dino-raptor-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 56.45161290322581, duration: 36000},
-    {file: 'dino-trex-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 56.45161290322581, duration: 36000},
-    {file: 'dino-longneck-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 34.61538461538461, duration: 36000},
+    {file: 'dino-raptor-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 35.483870967741936, duration: 36000},
+    {file: 'dino-trex-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 35.483870967741936, duration: 36000},
+    {file: 'dino-longneck-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 20.51282051282051, duration: 36000},
     {file: 'runner-tristan.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true},
     {file: 'runner-travis.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true}
   ];
