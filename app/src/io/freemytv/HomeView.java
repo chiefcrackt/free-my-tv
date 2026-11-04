@@ -126,13 +126,27 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static String[] tabs;
     private static int tabsGeneration = -1;
     private static final String[] TAB_KIND = {null, "movie", "tv"};
-    private static final int Z_TOP = 4, Z_CARDS = 5, Z_WATCH = 6;
+    private static final int Z_TOP = 4, Z_CARDS = 5, Z_WATCH = 6, Z_MUSIC = 12;
 
     private final Activity activity;
     private final Scene scene = new Scene();
     private final HomeData data;
     private final Recs recs;
     private final NowPlaying.Watch playing;
+    private final MusicCard music;
+    private int musicIndex = 1;
+    private int musicFocus = -1;
+    private boolean musicShown;
+    private final Runnable musicTick = new Runnable() {
+        @Override public void run() {
+            if (!running || !playing.hasCard()) return;
+            if (!drawerOpen && !sheetOpen && !menuOpen && !recentsOpen()) {
+                music.tick();
+                heroLayer.invalidate();
+            }
+            if (playing.isPlaying() && playing.duration() > 0) handler.postDelayed(this, 1000);
+        }
+    };
     private final Click click;
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** The background follows the focused pick once it has been there this long (see bgFollow). */
@@ -610,6 +624,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         data = HomeData.get(a);
         recs = Recs.get(a);
         playing = new NowPlaying.Watch(a, this::onPlaying);
+        music = new MusicCard(playing);
         click = new Click(a);
         shelfVisible = HomeApps.shelfVisible(a);
         ui = a.getSharedPreferences("home-ui", Context.MODE_PRIVATE);
@@ -741,6 +756,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         handler.removeCallbacks(homeTick);
         handler.removeCallbacks(reloadSoon);
         handler.removeCallbacks(bars);
+        handler.removeCallbacks(musicTick);
         playing.stop();
         data.removeListener(this);
         recs.removeListener(this);
@@ -1723,6 +1739,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** What's playing changed (or stopped). */
     private void onPlaying() {
+        music.update(k);
+        if (musicShown != playing.hasCard()) {
+            musicShown = playing.hasCard();
+            statusDirty = true;
+        }
+        handler.removeCallbacks(musicTick);
+        if (running && playing.hasCard() && playing.isPlaying() && playing.duration() > 0)
+            handler.postDelayed(musicTick, 1000);
+        if (!playing.hasCard() && zone == Z_MUSIC) {
+            zone = Z_SHELF;
+            okDown = okHeld = holdArmed = false;
+            retarget(false);
+        }
         fitPlaying();
         heroDirty = true;
         wake();
@@ -1775,7 +1804,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         int textColor = text.getColor();
         text.setColor(Ui.alpha(textColor, fade));
         // What an app is playing takes the quotes' place while it plays.
-        String line = clock ? playingClock : playingTab;
+        String line = playing.hasCard() ? null : clock ? playingClock : playingTab;
         if (line != null) {
             float cap = clock ? playingClockCap : playingTabCap, gap = cap * 0.6f;
             float base = clock ? L_QUOTES_BASE * k : (L_TABBAR_TOP + L_TABBAR_H / 2) * k + cap / 2;
@@ -2410,7 +2439,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         statusChanged |= topChanged;
         tilesDirty |= snap || tilesChanged;
         statusDirty |= snap || statusChanged;
-        heroDirty |= snap || heroChanged;
+        int musicTarget = !sheetOpen && zone == Z_MUSIC ? musicIndex : -1;
+        heroDirty |= snap || heroChanged || musicFocus != musicTarget;
+        musicFocus = musicTarget;
         drawerDirty |= snap || drawerChanged;
         spoken.focusMoved();
     }
@@ -2771,6 +2802,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             }
             return;
         }
+        int musicHit = music.hit(x, y);
+        if (musicHit >= 0) {
+            if (entered(Z_MUSIC, musicHit)) {
+                zone = Z_MUSIC;
+                musicIndex = musicHit;
+                retarget(false);
+            }
+            return;
+        }
         int z = Z_TOP, hit = topAt(x, y);
         if (hit < 0) {
             z = Z_CARDS;
@@ -2876,6 +2916,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 retarget(false);
                 activate();
             }
+            return;
+        }
+        int musicHit = music.hit(x, y);
+        if (musicHit >= 0) {
+            zone = Z_MUSIC;
+            musicIndex = musicHit;
+            retarget(false);
+            activate();
             return;
         }
         int hit = topAt(x, y);
@@ -3238,6 +3286,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void activate() {
         wake();
+        if (!sheetOpen && !menuOpen && !reordering && zone == Z_MUSIC) {
+            playing.control(musicIndex);
+            return;
+        }
         if (reordering) {   // TalkBack's click while moving an app: drop it
             dropReorder();
             return;
@@ -3655,6 +3707,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             for (int i = 0; i < others.size(); i++) out.add(a11yId(GRID, i));
             return;
         }
+        if (playing.hasCard()) for (int i = 0; i < 3; i++) out.add(a11yId(Z_MUSIC, i));
         for (int i = picksMode() ? 0 : 3; i < 3 + lightButtons.size(); i++) out.add(a11yId(Z_TOP, i));
         for (int i = 0; i < Math.min(Recs.MAX_CARDS, cards.size()); i++) out.add(a11yId(Z_CARDS, i));
         if (continueMode()) for (int i = 0; i < watching.size(); i++) out.add(a11yId(Z_WATCH, i));
@@ -3667,6 +3720,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private String a11yText(int id) {
         int group = (id - 1) / 1000, i = (id - 1) % 1000;
         switch (group) {
+            case Z_MUSIC:
+                return playing.hasCard() && i < 3 ? music.label(i) + ". " + playing.cardTitle : "";
             case RECENT_CARDS:
                 if (!recentsOpen()) return "";
                 return recents.count() == 0 ? Ui.tr("Recent Apps") + ". " + recents.emptyText() : recents.spoken(i);
@@ -3711,6 +3766,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         int group = (id - 1) / 1000, i = (id - 1) % 1000;
         float dy;
         switch (group) {
+            case Z_MUSIC:
+                if (!playing.hasCard() || i >= 3) return false;
+                music.bounds(i, a11yRect);
+                dy = heroLayer.getTranslationY();
+                break;
             case RECENT_CARDS:
                 if (!recentsOpen()) return false;
                 if (recents.count() == 0) recents.emptyBounds(a11yRect);
@@ -3793,6 +3853,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (menuOpen) return a11yId(MENU_ITEMS, menuIndex);
         if (sheetOpen) return others.isEmpty() ? -1 : a11yId(GRID, gridIndex);
         switch (zone) {
+            case Z_MUSIC: return playing.hasCard() ? a11yId(Z_MUSIC, musicIndex) : -1;
             case Z_TOP: return a11yId(Z_TOP, topIndex);
             case Z_CARDS: return cardIndex < cards.size() ? a11yId(Z_CARDS, cardIndex) : -1;
             case Z_WATCH: return watchIndex < watching.size() ? a11yId(Z_WATCH, watchIndex) : -1;
@@ -3857,6 +3918,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         if (sheetOpen || reordering) return;
         switch (group) {
+            case Z_MUSIC:
+                if (!playing.hasCard() || i >= 3) return;
+                if (drawerOpen) closeDrawer();
+                musicIndex = i;
+                break;
             case Z_DRAWER:
                 if (i >= drawerItems.size()) return;
                 if (!drawerOpen) openDrawer();
@@ -4598,6 +4664,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawLightTop(Canvas c) {
         applyTone();
+        music.draw(c, night > 0.5f, zone == Z_MUSIC && !sheetOpen && !menuOpen ? musicIndex : -1);
         if (clockMode()) {
             titleRight = 0;
             drawClock(c);
@@ -4605,8 +4672,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             return;
         }
         String hello = picksMode() ? Ui.tr("For You") : Ui.tr("Continue Watching");
-        c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
-        titleRight = MARGIN * k + lTitle.measureText(hello);
+        if (!playing.hasCard()) c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
+        titleRight = playing.hasCard() ? 840 * k : MARGIN * k + lTitle.measureText(hello);
         if (!picksMode()) {
             if (continueMode()) drawWatchRow(c);
             if (HomeData.coinCount() > 0 || playingTab != null) drawQuotes(c);
@@ -4819,7 +4886,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         int color = Ui.alpha(tone(L_INK, 0xEBFFFFFF), 0.85f);
         float x = MARGIN * k;
         // The top title ("For You", or "Continue Watching") is on this line too: the icons start after it, not on it.
-        if (!clockMode()) x += lTitle.measureText(picksMode() ? Ui.tr("For You") : Ui.tr("Continue Watching")) + gap;
+        if (playing.hasCard()) x = 862 * k;
+        else if (!clockMode()) x += lTitle.measureText(picksMode() ? Ui.tr("For You") : Ui.tr("Continue Watching")) + gap;
         if (network != 0) x = drawStatusIcon(c, network == 2 ? "ethernet" : "wifi", x, height, gap, color);
         if (bluetoothConnected) x = drawStatusIcon(c, "bluetooth", x, height, gap, color);
         if (usbConnected) drawStatusIcon(c, "usb", x, height, gap, color);
@@ -4842,6 +4910,23 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private boolean moveLight(int dx, int dy) {
         switch (zone) {
+            case Z_MUSIC:
+                if (!playing.hasCard()) {
+                    zone = Z_SHELF;
+                } else if (dy > 0) {
+                    if (picksMode() || !lightButtons.isEmpty()) {
+                        zone = Z_TOP;
+                        topIndex = picksMode() ? tab : 3;
+                    } else {
+                        zone = continueMode() && !watching.isEmpty() ? Z_WATCH : Z_SHELF;
+                    }
+                } else if (dx > 0 && musicIndex == 2 && !lightButtons.isEmpty()) {
+                    zone = Z_TOP;
+                    topIndex = 3;
+                } else if (dx != 0) {
+                    musicIndex = Math.max(0, Math.min(2, musicIndex + dx));
+                }
+                break;
             case Z_SHELF:
                 // Up from an empty shelf too: move()'s older zones (the hero, the corner capsule) aren't drawn any more.
                 if (dy >= 0) return false;
@@ -4852,6 +4937,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     } else if (!lightButtons.isEmpty()) {
                         zone = Z_TOP;
                         topIndex = 3;
+                    } else if (playing.hasCard()) {
+                        zone = Z_MUSIC;
                     } else {
                         return true;
                     }
@@ -4893,6 +4980,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 }
                 break;
             case Z_TOP:
+                if (playing.hasCard() && (dy < 0 || (dx < 0 && !picksMode() && topIndex == 3))) {
+                    zone = Z_MUSIC;
+                    break;
+                }
                 if (dx != 0 && !picksMode() && topIndex + dx < 3) return true;   // no tabs to the left
                 if (dy > 0 && !picksMode()) {
                     zone = continueMode() && !watching.isEmpty() ? Z_WATCH : Z_SHELF;

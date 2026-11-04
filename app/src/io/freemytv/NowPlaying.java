@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.media.MediaDescription;
@@ -21,10 +22,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
- * What any app is playing (title, artist or channel, the app), from the media session each app publishes for the remote's
+ * What any app is playing (metadata, artwork and playback controls), from the media session each app publishes for the remote's
  * play/pause and the Assistant: one way for music, videos, radio and live streams alike. Reading the sessions needs this
  * notification listener allowed (HomeMode does it while Home Settings' Now Playing widget is on); it never reads a
  * notification and asks the system to unbind it at once, so no process stays up for it.
@@ -79,12 +79,22 @@ public class NowPlaying extends NotificationListenerService {
         private final MediaController.Callback callback = new MediaController.Callback() {
             @Override public void onPlaybackStateChanged(PlaybackState state) { update(); }
             @Override public void onMetadataChanged(MediaMetadata metadata) { update(); }
-            @Override public void onSessionDestroyed() { update(); }
+            @Override public void onSessionDestroyed() {
+                try {
+                    onActiveSessionsChanged(context.getSystemService(MediaSessionManager.class).getActiveSessions(component(context)));
+                } catch (RuntimeException e) { onActiveSessionsChanged(null); }
+            }
         };
         private boolean on;
         volatile String text;
         /** The title alone (the app's package when it gives none): the line's other parts can change every second. */
         volatile String title;
+        /** Home retains paused media; the screensaver's text still shows only active playback. */
+        MediaController cardController;
+        MediaMetadata cardMetadata;
+        PlaybackState cardPlayback;
+        String cardTitle, cardSubtitle;
+        Bitmap cardArt;
 
         Watch(Context c, Runnable changed) {
             context = c;
@@ -129,6 +139,7 @@ public class NowPlaying extends NotificationListenerService {
 
         private void update() {
             String now = null, nowTitle = null;
+            MediaController active = null, paused = null;
             for (MediaController mc : controllers) {   // most recent first
                 PlaybackState s = mc.getPlaybackState();
                 int state = s == null ? PlaybackState.STATE_NONE : s.getState();
@@ -139,13 +150,80 @@ public class NowPlaying extends NotificationListenerService {
                     MediaMetadata m = mc.getMetadata();
                     CharSequence t = m == null ? null : m.getDescription().getTitle();
                     nowTitle = now == null ? null : TextUtils.isEmpty(t) ? mc.getPackageName() : t.toString().trim();
+                    active = mc;
                     break;
                 }
+                if (state == PlaybackState.STATE_PAUSED && paused == null) paused = mc;
             }
-            if (Objects.equals(now, text)) return;
+            cardController = active != null ? active : paused;
+            cardMetadata = cardController == null ? null : cardController.getMetadata();
+            cardPlayback = cardController == null ? null : cardController.getPlaybackState();
+            MediaDescription description = cardMetadata == null ? null : cardMetadata.getDescription();
+            cardTitle = description == null || TextUtils.isEmpty(description.getTitle())
+                    ? cardController == null ? null : label(cardController) : description.getTitle().toString();
+            String artist = cardMetadata == null ? null : cardMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            if (TextUtils.isEmpty(artist) && description != null && description.getSubtitle() != null)
+                artist = description.getSubtitle().toString();
+            String app = cardController == null ? "" : label(cardController);
+            cardSubtitle = TextUtils.isEmpty(artist) ? app : artist + " · " + app;
+            cardArt = description == null ? null : description.getIconBitmap();
+            if (cardArt == null && cardMetadata != null) cardArt = cardMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (cardArt == null && cardMetadata != null) cardArt = cardMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
             title = nowTitle;
             text = now;
+            // Artwork, position and controls can change without a new title.
             changed.run();
+        }
+
+        boolean hasCard() { return cardController != null && !TextUtils.isEmpty(cardTitle); }
+
+        boolean isPlaying() {
+            return cardPlayback != null && cardPlayback.getState() != PlaybackState.STATE_PAUSED;
+        }
+
+        long duration() {
+            return cardMetadata == null ? 0 : Math.max(0, cardMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION));
+        }
+
+        long position() {
+            if (cardPlayback == null) return 0;
+            return MusicPlayback.position(cardPlayback.getPosition(), cardPlayback.getLastPositionUpdateTime(),
+                    SystemClock.elapsedRealtime(), cardPlayback.getPlaybackSpeed(),
+                    cardPlayback.getState() == PlaybackState.STATE_PLAYING, duration());
+        }
+
+        boolean canControl(int button) {
+            if (cardPlayback == null) return false;
+            long action = button == 0 ? PlaybackState.ACTION_SKIP_TO_PREVIOUS : button == 2
+                    ? PlaybackState.ACTION_SKIP_TO_NEXT : PlaybackState.ACTION_PLAY_PAUSE
+                    | (isPlaying() ? PlaybackState.ACTION_PAUSE : PlaybackState.ACTION_PLAY);
+            return (cardPlayback.getActions() & action) != 0;
+        }
+
+        void control(int button) {
+            if (!canControl(button) || cardController == null) return;
+            try {
+                MediaController.TransportControls controls = cardController.getTransportControls();
+                if (button == 0) controls.skipToPrevious();
+                else if (button == 2) controls.skipToNext();
+                else if (isPlaying()) controls.pause();
+                else controls.play();
+            } catch (RuntimeException e) {
+                // A player can disappear between the key press and the command.
+                onActiveSessionsChanged(null);
+            }
+        }
+
+        private String label(MediaController mc) {
+            String app = labels.get(mc.getPackageName());
+            if (app == null) {
+                try {
+                    PackageManager pm = context.getPackageManager();
+                    app = pm.getApplicationLabel(pm.getApplicationInfo(mc.getPackageName(), 0)).toString();
+                } catch (PackageManager.NameNotFoundException e) { app = mc.getPackageName(); }
+                labels.put(mc.getPackageName(), app);
+            }
+            return app;
         }
 
         /** "Title · Artist · App": the parts the app gives, then its name; null when there's none of them. */
@@ -155,16 +233,7 @@ public class NowPlaying extends NotificationListenerService {
             MediaDescription d = m == null ? null : m.getDescription();
             if (d != null && !TextUtils.isEmpty(d.getTitle())) parts.add(d.getTitle().toString().trim());
             if (d != null && !TextUtils.isEmpty(d.getSubtitle())) parts.add(d.getSubtitle().toString().trim());
-            String app = labels.get(mc.getPackageName());
-            if (app == null) {
-                try {
-                    PackageManager pm = context.getPackageManager();
-                    app = pm.getApplicationLabel(pm.getApplicationInfo(mc.getPackageName(), 0)).toString();
-                } catch (PackageManager.NameNotFoundException e) {
-                    app = "";   // an app without a launcher icon is hidden from us (Android 11+): no name to show
-                }
-                labels.put(mc.getPackageName(), app);
-            }
+            String app = label(mc);
             if (!app.isEmpty() && !parts.contains(app)) parts.add(app);
             return parts.isEmpty() ? null : TextUtils.join(" · ", parts);
         }
