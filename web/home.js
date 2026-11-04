@@ -625,6 +625,7 @@
   }
 
   function renderPanels() {
+    renderNowWeather();
     var d = $('drawer');
     var old = d.querySelectorAll('.panel');
     for (var o = 0; o < old.length; o++) d.removeChild(old[o]);
@@ -645,6 +646,18 @@
       q.style.width = (1840 - left) + 'px';
       renderPrices(q, coins);
     }
+  }
+
+  /** The calm look: the weather now, under the clock (with Home Settings' Weather widget on). */
+  function renderNowWeather() {
+    var line = $('nowwx'), w = Data.weather;
+    if (!line) return;
+    line.innerHTML = '';
+    if (!w || !Prefs.weather()) return;
+    sym(Data.symbol(w.code, w.isDay), line, 40);
+    el('span', 'temp', line, Data.degrees(w.temp));
+    el('span', '', line, Data.condition(w.code, w.isDay));
+    el('span', 'range', line, trf('H:{max}', {max: Data.degrees(w.max)}) + '  ' + trf('L:{min}', {min: Data.degrees(w.min)}));
   }
 
   function renderWeather(card) {
@@ -1805,7 +1818,7 @@
 
   I18N.set(Prefs.language());
   setClass(body, 'calm', CALM);
-  if (CALM) makeLeaves();
+  if (CALM) { makeLeaves(); el('div', '', $('top')).id = 'nowwx'; }
   setClass(body, 'autumn', CALM && autumn());
   if (CALM && CONFIG.greeting) { el('div', 'greeting', $('top'), CONFIG.greeting); setClass(body, 'greeted', true); }
   checkNight();   // now, from the last forecast: not after the TV lists its apps, with the day look until then
