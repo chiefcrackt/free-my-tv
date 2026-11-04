@@ -3,9 +3,9 @@
   'use strict';
 
   var VISITORS = [
-    {file: 'dino-raptor.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
-    {file: 'dino-trex.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
-    {file: 'dino-longneck.png', columns: 3, rows: 2, count: 6, frameMs: 125, duration: 18000},
+    {file: 'dino-raptor-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 56.45161290322581, duration: 36000},
+    {file: 'dino-trex-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 56.45161290322581, duration: 36000},
+    {file: 'dino-longneck-walk-v2.png', columns: 6, rows: 4, count: 24, stridePixels: 34.61538461538461, duration: 36000},
     {file: 'runner-tristan.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true},
     {file: 'runner-travis.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true}
   ];
@@ -30,7 +30,7 @@
     image = new Image();
     image.onload = function () {
       if (!active || mine !== generation) return;
-      // The dinosaurs use 3x2 sheets; original-rig runner exports use 4x4 sheets.
+      // Puppet-rendered dinosaurs use 6x4 sheets; the original runner exports use 4x4 sheets.
       if (!image.naturalWidth || image.naturalWidth / visitor.columns !== image.naturalHeight / visitor.rows) {
         clear();
         schedule(GAP_MS);
@@ -60,11 +60,15 @@
       actor.style.transition = 'transform ' + visitor.duration + 'ms linear';
       actor.style.webkitTransform = actor.style.transform = 'translateX(1920px)';
       var started = Date.now();
+      // Ground travel per stride comes from the planted-foot rig. Step rate follows travel speed, avoiding skating.
+      var cycleMs = visitor.stridePixels ? visitor.duration * visitor.stridePixels / (1920 + SIZE)
+        : visitor.frameMs * visitor.count;
+      var frameMs = cycleMs / visitor.count;
       frames = setInterval(function () {
         if (!active || mine !== generation) return;
-        var frame = Math.floor((Date.now() - started) / visitor.frameMs) % visitor.count;
+        var frame = Math.floor((Date.now() - started) / frameMs) % visitor.count;
         sprite.style.backgroundPosition = (-(frame % visitor.columns) * SIZE) + 'px ' + (-Math.floor(frame / visitor.columns) * SIZE) + 'px';
-      }, visitor.frameMs);
+      }, frameMs);
       timer = setTimeout(function () {
         if (!active || mine !== generation) return;
         clear();

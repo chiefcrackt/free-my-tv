@@ -61,13 +61,13 @@ const assert = require('assert/strict');
       await actor.evaluate(node => { node.style.transition = 'none'; node.style.transform = 'translateX(1080px)'; });
       await page.screenshot({path: process.env.DINOSAUR_SCREENSHOT});
     }
-    await page.clock.runFor(18000);
+    await page.clock.runFor(36000);
     assert.equal(await actor.isVisible(), false, 'there is a gap between dinosaurs');
     await page.clock.runFor(90000);
     await actor.waitFor({state: 'visible'});
     assert.match(await image(), /dino-trex/);
     await page.keyboard.press('ArrowRight'); // real remote activity also keeps the screensaver from timing out
-    await page.clock.runFor(108000);
+    await page.clock.runFor(126000);
     await actor.waitFor({state: 'visible'});
     assert.match(await image(), /dino-longneck/);
 
@@ -91,7 +91,7 @@ const assert = require('assert/strict');
     await page.clock.runFor(8100);
     await actor.waitFor({state: 'visible'});
     assert.equal(await actor.evaluate(node => node.parentNode.id), 'saver');
-    await page.clock.runFor(108000);
+    await page.clock.runFor(126000);
     await actor.waitFor({state: 'visible'});
     assert.match(await image(), /runner-tristan/, 'Tristan follows the three dinosaurs');
     assert.equal(await sprite.evaluate(node => node.style.backgroundSize), '512px 512px');

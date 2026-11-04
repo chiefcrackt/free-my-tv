@@ -19,6 +19,7 @@ if [ "$what" = all ] || [ "$what" = android ]; then
   ./build.sh
   bash tools/test-remote.sh
   bash tools/test-order.sh
+  node tests/dinosaur-gait.cjs
 fi
 
 if [ "$what" = all ] || [ "$what" = web ]; then

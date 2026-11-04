@@ -315,13 +315,17 @@ illustration and station name. It does not monitor music playing in other Samsun
 
 The turquoise raptor, orange T. rex, purple long-neck, Tristan and Travis take turns crossing Home and both screensavers.
 On Home their entire 128-pixel frame stays above the app shelf and below the weather. On a screensaver they cross
-near the bottom, away from its clock and weather. Dinosaur walks last 18 seconds and runner crossings last 12 seconds,
+near the bottom, away from its clock and weather. Dinosaur walks last 36 seconds and runner crossings last 12 seconds,
 with a 90-second quiet gap; the first
 visitor arrives about 8 seconds after opening Home or a screensaver. Visitors stop immediately under the drawer or
 settings, and when another app is in front. They do not take focus, intercept remote keys or reset the idle timer.
 
-`web/dinosaurs.js` controls the local six-frame PNG sheets (3 columns × 2 rows, 512 × 512 pixels per frame).
-The dinosaur sheets were generated from the three approved character designs with the built-in image-generation tool.
+`web/dinosaurs.js` controls local 24-frame dinosaur sheets (6 columns × 4 rows, 256 × 256 pixels per frame).
+The character parts were generated from the approved designs with the built-in image-generation tool, then assembled
+with a jointed walk rig in `tools/export-dinosaur-walks.cjs`. Each supporting foot moves backwards at ground speed;
+the player derives the step rate from the rig's stride distance and the crossing speed. The original six-frame
+pose sheets are retained under `artwork/dinosaurs` for reference and are not packaged in the TV app.
+`node tests/dinosaur-gait.cjs` checks planted-foot sliding, support counts, clearance and fixed bone lengths.
 Tristan and Travis use the original artwork and running rig from `chiefcrackt/links-inMotion` at commit
 `c2200ec0543d3a57290ef01af124a278a2186a96`, exported as 16-frame 4 × 4 PNG sheets (256-pixel frames, 32 fps).
 They preserve the original character artwork rather than redrawing it, and add no network requests.
