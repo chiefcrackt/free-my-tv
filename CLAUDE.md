@@ -465,6 +465,12 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   It unbinds itself as soon as it connects (the permission is all it's for), and the home screen and the screensaver
   watch the sessions only while they show. The line is cut to fit when the title changes, never while drawing; the
   home screen's bars bounce again only for a new title (`Watch.title`), and TalkBack announces it then.
+  On Android Home, `MusicCard` replaces the top-left heading while a media session is playing, buffering or paused.
+  It uses only session-provided bitmap artwork (a record icon otherwise), never downloads artwork, and exposes only
+  transport actions advertised by that session. Up from the top row reaches the three controls, Down returns;
+  mouse and TalkBack use the same controls. `Watch.text` still describes only active playback for the screensaver.
+  A one-second Home timer updates position only while playing with a known duration, skips covered Home content,
+  and stops when Home pauses. Position math is checked by `tools/test-music.sh` (part of `tools/check.sh`).
 - *At power-on* (Home Settings, `Prefs.powerOn()`: `tv`, the default, `home` or `live`; #396, #346) acts only after a
   full start, never on a wake from standby. `HomeActivity` keeps the uptime of the first time the home screen came up
   in this start (`HomeMode.noteHomeShown`, the file `home-shown` with `Settings.Global.BOOT_COUNT`). `live`: 10 s later,
