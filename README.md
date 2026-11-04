@@ -300,6 +300,17 @@ Free My TV runs on Google TV and Android TV: TCL, Sony, Hisense, Philips, Xiaomi
 
 ## Make it yours
 
+### This fork's Samsung music card
+
+The `samsung-calm-lofi` setup uses the app's own live radio streams, not YouTube. A card at the top left shows the
+selected station and playback status. Its arrows select the previous or next station; the middle button pauses or
+resumes the radio using the same Lofi music setting as Home Settings. From the app shelf, press Up twice to reach
+the card, Left/Right to choose a control, OK to use it, and Down to return to the top buttons. Switching stations
+while paused keeps the music off. The clock, weather, greeting and autumn leaves keep their existing layout.
+
+These streams do not supply track titles, album artwork or a track duration to the app, so the card shows a record
+illustration and station name. It does not monitor music playing in other Samsung apps.
+
 It's your code, and Claude Code finds its way around it. Try:
 
 - *"Add Crunchyroll to the shelf."*

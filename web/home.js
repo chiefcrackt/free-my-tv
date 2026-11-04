@@ -325,14 +325,16 @@
 
   // MARK: - Focus
 
-  var Z = {TOP: 'top', CARDS: 'cards', SHELF: 'shelf', DRAWER: 'drawer', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
-  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, shelf: 0, drawer: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
+  var Z = {MUSIC: 'music', TOP: 'top', CARDS: 'cards', SHELF: 'shelf', DRAWER: 'drawer', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
+  var st = {zone: Z.SHELF, music: 1, top: 0, tab: 0, card: 0, shelf: 0, drawer: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
   var cards = [];
 
   function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.ABOUT; }
 
   function updateFocus() {
     var i, list;
+    list = document.querySelectorAll('#musiccard button');
+    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.MUSIC && st.music === i);
     list = $('tabs').children;
     for (i = 0; i < list.length; i++) {
       setClass(list[i], 'on', i === st.tab);
@@ -1308,6 +1310,16 @@
 
   function activate() {
     switch (st.zone) {
+      case Z.MUSIC:
+        if (st.music === 1) {
+          Prefs.set('lofi', !Prefs.lofi());
+          playLofi();
+        } else {
+          cycle('lofiStation', STATIONS.map(function (s) { return s[0]; }), lofiStation()[0], st.music === 0 ? -1 : 1);
+          stopLofi();
+          playLofi();
+        }
+        return;
       case Z.TOP:
         if (st.top < 3) return;
         if (st.top === 3) { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); }
@@ -1364,6 +1376,10 @@
   function move(dx, dy) {
     var tiles = $('tiles').children, cardNodes = $('cards').children;
     switch (st.zone) {
+      case Z.MUSIC:
+        if (dy > 0 || (dx > 0 && st.music === 2)) { st.zone = Z.TOP; st.top = 3; }
+        else if (dx) st.music = Math.max(0, Math.min(2, st.music + dx));
+        break;
       case Z.SHELF:
         if (dx) st.shelf = Math.max(0, Math.min(shelf.length - 1, st.shelf + dx));
         else if (dy > 0) { openDrawer(); return; }
@@ -1378,6 +1394,7 @@
         else if (shelf.length) { st.zone = Z.SHELF; st.shelf = nearest(tiles, centerX(cardNodes[st.card])); }
         break;
       case Z.TOP:
+        if (LOFI_URL && (dy < 0 || (dx < 0 && st.top === 3 && !picksShown()))) { st.zone = Z.MUSIC; break; }
         if (dx) {
           st.top = Math.max(picksShown() ? 0 : 3, Math.min(5, st.top + dx));   // without the picks the tabs can't hold focus
           if (st.top < 3) selectTab(st.top);   // as on Apple TV: focusing a tab selects it
@@ -1445,7 +1462,8 @@
       if (zone === Z.TOP && index < 3 && !picksShown()) return;   // the tabs are hidden without the picks
       if (zone === Z.SHELF && st.zone === Z.DRAWER) closeDrawer();
       st.zone = zone;
-      if (zone === Z.TOP) { st.top = index; if (index < 3) selectTab(index); }
+      if (zone === Z.MUSIC) st.music = index;
+      else if (zone === Z.TOP) { st.top = index; if (index < 3) selectTab(index); }
       else if (zone === Z.CARDS) st.card = index;
       else if (zone === Z.SHELF) st.shelf = index;
       else if (zone === Z.DRAWER) st.drawer = index;
@@ -1655,6 +1673,39 @@
     return STATIONS[0];
   }
   var lofi = null, lofiFade = 0, lofiRetry = 0;
+  var musicCard = null, musicStatus = '', musicWaiting = false;
+
+  /** Radio has no track duration or album data here: show the real station and playback state. */
+  function renderMusicCard() {
+    if (!LOFI_URL) return;
+    if (!musicCard) {
+      musicCard = el('div', '', $('top'));
+      musicCard.id = 'musiccard';
+      el('div', 'record', musicCard);
+      el('div', 'station', musicCard);
+      el('div', 'detail', musicCard);
+      var controls = el('div', 'controls', musicCard);
+      for (var i = 0; i < 3; i++) {
+        var button = el('button', 'music-button', controls);
+        button.type = 'button';
+        hover(button, Z.MUSIC, i);
+      }
+    }
+    var station = lofiStation(), enabled = Prefs.lofi(), playing = enabled && lofi && !lofi.paused && !musicWaiting;
+    musicCard.querySelector('.station').textContent = station[0];
+    musicStatus = !enabled ? tr('Off') : playing ? tr('On') : '…';
+    musicCard.querySelector('.detail').textContent = tr('Music station') + ' · ' + musicStatus;
+    setClass(musicCard, 'playing', !!playing);
+    var buttons = musicCard.querySelectorAll('button');
+    var index = 0;
+    for (var n = 0; n < STATIONS.length; n++) if (STATIONS[n][0] === station[0]) index = n;
+    for (var j = 0; j < 3; j++) {
+      buttons[j].textContent = j === 0 ? '‹' : j === 2 ? '›' : enabled ? 'Ⅱ' : '▶';
+      buttons[j].setAttribute('aria-label', j === 1 ? tr('Lofi music') + ': ' + (enabled ? tr('Off') : tr('On'))
+        : tr('Music station') + ': ' + STATIONS[(index + (j === 0 ? -1 : 1) + STATIONS.length) % STATIONS.length][0]);
+      setClass(buttons[j], 'focus', st.zone === Z.MUSIC && st.music === j);
+    }
+  }
 
   function lofiWanted() { return !!LOFI_URL && Prefs.lofi() && !document.hidden; }
 
@@ -1665,14 +1716,19 @@
     if (!lofi) {
       lofi = new Audio();
       lofi.preload = 'none';
+      lofi.onplaying = function () { musicWaiting = false; renderMusicCard(); };
+      lofi.onwaiting = function () { musicWaiting = true; renderMusicCard(); };
+      lofi.onpause = function () { renderMusicCard(); };
       // A dropped stream ends or fails: connect again a little later.
       lofi.onerror = lofi.onended = function () { if (lofi.getAttribute('src') && lofiWanted()) retryLofi(); };
     }
-    if (!lofi.paused) return;
+    if (!lofi.paused) { renderMusicCard(); return; }
+    musicWaiting = true;
     lofi.src = lofiStation()[1];   // live radio: a fresh connection, not where it stopped
     lofi.volume = 0;
     var started = lofi.play();
     if (started && started.then) started.then(null, function () {});   // a desktop browser waits for a key first
+    renderMusicCard();
     clearInterval(lofiFade);
     lofiFade = setInterval(function () {
       var level = lofiLevel();
@@ -1693,15 +1749,19 @@
   function stopLofi() {
     clearInterval(lofiFade);
     clearTimeout(lofiRetry);
-    if (!lofi) return;
+    musicWaiting = false;
+    if (!lofi) { renderMusicCard(); return; }
     lofi.pause();
     lofi.removeAttribute('src');
     lofi.load();   // closes the connection, so the stream stops downloading
+    renderMusicCard();
   }
 
   function retryLofi() {
     clearTimeout(lofiRetry);
     lofi.pause();
+    musicWaiting = true;
+    renderMusicCard();
     lofiRetry = setTimeout(playLofi, 15000);
   }
 
