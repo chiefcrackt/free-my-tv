@@ -54,6 +54,11 @@
   }
 
   var stage = $('stage'), body = document.body;
+  // This fork's Samsung look (tizen/build.py): a clock where the picks and tabs were, and a calmer background and shelf.
+  var CALM = CONFIG.calm === true;
+
+  /** The picks and their tabs show: not in the calm look, and only with a TMDB key. */
+  function picksShown() { return !CALM && Data.hasKey(); }
 
   /**
    * The 1920 × 1080 stage fills the window (on the TV it already is 1920 × 1080). A TV's window only gets shorter for
@@ -420,11 +425,11 @@
   // MARK: - Picks and background
 
   function renderCards() {
-    var list = Data.picks(TAB_KIND[st.tab]);
+    var list = CALM ? [] : Data.picks(TAB_KIND[st.tab]);
     var holder = $('cards');
     setClass(body, 'no-picks', !list.length);
-    setClass(body, 'no-key', !Data.hasKey());   // as on Android: no title or tabs that could never show anything
-    if (!Data.hasKey() && st.zone === Z.TOP && st.top < 3) st.top = 3;
+    setClass(body, 'no-key', !picksShown());   // as on Android: no title or tabs that could never show anything
+    if (!picksShown() && st.zone === Z.TOP && st.top < 3) st.top = 3;
     var same = list.length === cards.length;
     for (var i = 0; same && i < list.length; i++) same = list[i].id === cards[i].id && list[i].backdrop === cards[i].backdrop && list[i].meta === cards[i].meta;
     if (same && holder.children.length === list.length) return;
@@ -757,9 +762,15 @@
         step: function (d) { cycle('theme', ['auto', 'light', 'dark'], theme, d); checkNight(); }},
       {label: tr('Dim'), value: dimName(),
         step: function (d) { cycle('dim', ['off', 'low', 'medium', 'high', 'auto'], Prefs.dim(), d); applyDim(); }},
+      {label: tr('Lofi music'), toggle: Prefs.lofi(), lofi: true,
+        step: function () { Prefs.set('lofi', !Prefs.lofi()); playLofi(); }},
+      {label: tr('Music station'), value: lofiStation()[0], lofi: true, dim: !Prefs.lofi(),
+        step: function (d) { if (Prefs.lofi()) { cycle('lofiStation', STATIONS.map(function (s) { return s[0]; }), lofiStation()[0], d); stopLofi(); playLofi(); } }},
+      {label: tr('Lofi volume'), value: Prefs.lofiVolume() + '%', lofi: true, dim: !Prefs.lofi(),
+        step: function (d) { if (Prefs.lofi()) { cycle('lofiVolume', [10, 25, 50, 75, 100], Prefs.lofiVolume(), d); setLofiVolume(); } }},
       {label: tr('Screensaver'), value: saverMode() === 'clock' ? tr('Clock') : tr('Photos'),
         step: function (d) { cycle('saver', ['photos', 'clock'], saverMode(), d); }},
-      {label: tr('Picks per tab'), value: String(Prefs.cards()),
+      {label: tr('Picks per tab'), value: String(Prefs.cards()), picks: true,
         step: function (d) { Prefs.set('cards', 3 + (Prefs.cards() - 3 + (d || 1) + 4) % 4); renderCards(); }},
       {label: tr('Cartoons and anime'), toggle: !Prefs.hideAnimation(),
         step: function () { Prefs.set('hideAnimation', !Prefs.hideAnimation()); Data.refresh(); }},
@@ -774,6 +785,7 @@
       {label: tr('Quotes widget'), toggle: Prefs.quotes(),
         step: function () { Prefs.set('quotes', !Prefs.quotes()); Data.settingsChanged(); }}
     ];
+    rows = rows.filter(function (r) { return !(r.lofi && !LOFI_URL) && !(r.picks && CALM); });
     var names = ['Bitcoin', 'Ethereum', 'Solana', tr('Dollar')];
     var count = Data.currency === 'BRL' ? 4 : 3;
     for (var i = 0; i < count; i++) {
@@ -1344,7 +1356,7 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
-          else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : 3; }
+          else { st.zone = Z.TOP; st.top = picksShown() ? st.tab : 3; }
         }
         break;
       case Z.CARDS:
@@ -1354,7 +1366,7 @@
         break;
       case Z.TOP:
         if (dx) {
-          st.top = Math.max(Data.hasKey() ? 0 : 3, Math.min(5, st.top + dx));   // without the picks the tabs can't hold focus
+          st.top = Math.max(picksShown() ? 0 : 3, Math.min(5, st.top + dx));   // without the picks the tabs can't hold focus
           if (st.top < 3) selectTab(st.top);   // as on Apple TV: focusing a tab selects it
         } else if (dy > 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = Math.min(cards.length - 1, st.top < 3 ? 0 : cards.length - 1); }
@@ -1417,7 +1429,7 @@
       if (saverOn || (sheetOpen() !== (zone === Z.APPS || zone === Z.SETTINGS || zone === Z.EDIT || zone === Z.LANG || zone === Z.CITY || zone === Z.KEY || zone === Z.ABOUT))) return;
       if (zone === Z.DRAWER && st.zone !== Z.DRAWER) return;
       if (zone !== Z.DRAWER && st.zone === Z.DRAWER && zone !== Z.SHELF) return;
-      if (zone === Z.TOP && index < 3 && !Data.hasKey()) return;   // the tabs are hidden without the picks
+      if (zone === Z.TOP && index < 3 && !picksShown()) return;   // the tabs are hidden without the picks
       if (zone === Z.SHELF && st.zone === Z.DRAWER) closeDrawer();
       st.zone = zone;
       if (zone === Z.TOP) { st.top = index; if (index < 3) selectTab(index); }
@@ -1590,10 +1602,101 @@
     return true;
   }
 
+  // MARK: - Falling leaves (the calm look): every autumn, from September 1 until December 1
+
+  var LEAF_COLORS = ['#D9822B', '#C4532D', '#E0A43A', '#A8452A', '#CF6F2E'];
+
+  function autumn() { var m = new Date().getMonth(); return m >= 8 && m <= 10; }
+
+  /** A few leaves behind the clock and the shelf: each falls (CSS keyframes) while swaying, at its own pace. */
+  function makeLeaves() {
+    var sky = $('sky'), box = el('div', 'leaves');
+    sky.insertBefore(box, sky.querySelector('.lift'));
+    for (var i = 0; i < 14; i++) {
+      var fall = el('div', 'leaf', box), sway = el('div', 'sway', fall), blade = el('div', 'blade', sway);
+      var dur = 14 + Math.random() * 12, size = 18 + Math.round(Math.random() * 16);
+      fall.style.left = Math.round(Math.random() * 1880) + 'px';
+      fall.style.webkitAnimationDuration = fall.style.animationDuration = dur + 's';
+      fall.style.webkitAnimationDelay = fall.style.animationDelay = (-Math.random() * dur) + 's';   // already on their way
+      sway.style.webkitAnimationDuration = sway.style.animationDuration = (3 + Math.random() * 3) + 's';
+      blade.style.width = blade.style.height = size + 'px';
+      blade.style.backgroundColor = LEAF_COLORS[i % LEAF_COLORS.length];
+    }
+  }
+
+  // MARK: - Lofi radio (Samsung, this fork): plays quietly whenever Free My TV is on screen
+
+  var LOFI_URL = CALM ? CONFIG.lofiUrl || '' : '';
+  // Free 24/7 laut.fm streams to pick from in Home Settings; the first is config.properties' lofi_url. (SomaFM's
+  // refuse the range requests a browser's player sends.)
+  var STATIONS = [
+    ['Lofi', LOFI_URL],
+    ['Chillout', 'https://stream.laut.fm/chillout'],
+    ['Lounge', 'https://stream.laut.fm/lounge'],
+    ['Jazz', 'https://stream.laut.fm/jazz'],
+    ['Ambient', 'https://stream.laut.fm/ambient']
+  ];
+
+  function lofiStation() {
+    for (var i = 0; i < STATIONS.length; i++) if (STATIONS[i][0] === Prefs.lofiStation()) return STATIONS[i];
+    return STATIONS[0];
+  }
+  var lofi = null, lofiFade = 0, lofiRetry = 0;
+
+  function lofiWanted() { return !!LOFI_URL && Prefs.lofi() && !document.hidden; }
+
+  /** Starts the stream (fading in) when it should play and isn't; stops it when it shouldn't. */
+  function playLofi() {
+    clearTimeout(lofiRetry);
+    if (!lofiWanted()) { stopLofi(); return; }
+    if (!lofi) {
+      lofi = new Audio();
+      lofi.preload = 'none';
+      // A dropped stream ends or fails: connect again a little later.
+      lofi.onerror = lofi.onended = function () { if (lofi.getAttribute('src') && lofiWanted()) retryLofi(); };
+    }
+    if (!lofi.paused) return;
+    lofi.src = lofiStation()[1];   // live radio: a fresh connection, not where it stopped
+    lofi.volume = 0;
+    var started = lofi.play();
+    if (started && started.then) started.then(null, function () {});   // a desktop browser waits for a key first
+    clearInterval(lofiFade);
+    lofiFade = setInterval(function () {
+      var level = lofiLevel();
+      lofi.volume = Math.min(level, lofi.volume + level / 40);
+      if (lofi.volume >= level) clearInterval(lofiFade);
+    }, 100);
+  }
+
+  function lofiLevel() { return Prefs.lofiVolume() / 100; }
+
+  /** A new volume from Home Settings: at once while it plays. */
+  function setLofiVolume() {
+    if (!lofi || lofi.paused) return;
+    clearInterval(lofiFade);
+    lofi.volume = lofiLevel();
+  }
+
+  function stopLofi() {
+    clearInterval(lofiFade);
+    clearTimeout(lofiRetry);
+    if (!lofi) return;
+    lofi.pause();
+    lofi.removeAttribute('src');
+    lofi.load();   // closes the connection, so the stream stops downloading
+  }
+
+  function retryLofi() {
+    clearTimeout(lofiRetry);
+    lofi.pause();
+    lofiRetry = setTimeout(playLofi, 15000);
+  }
+
   // MARK: - Keys
 
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode;
+    if (lofiWanted() && (!lofi || lofi.paused)) playLofi();   // where it couldn't start by itself (a desktop browser)
     if (poke(k === TV.keys.ok)) { e.preventDefault(); return; }   // the first press only wakes the screen (or OK watches)
     if (typing(k)) return;
     if (k === TV.keys.left) move(-1, 0);
@@ -1694,12 +1797,17 @@
   document.addEventListener('webOSRelaunch', reopened);   // LG: opened again while running
   window.addEventListener('appcontrol', reopened);        // Samsung: the same
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { hideSaver(); hideAmbient(); return; }
+    if (document.hidden) { hideSaver(); hideAmbient(); stopLofi(); return; }
     idleAt = Date.now();
+    playLofi();
     loadApps(function () { renderShelf(); renderDrawer(); updateFocus(); Data.refresh(); });
   });
 
   I18N.set(Prefs.language());
+  setClass(body, 'calm', CALM);
+  if (CALM) makeLeaves();
+  setClass(body, 'autumn', CALM && autumn());
+  if (CALM && CONFIG.greeting) { el('div', 'greeting', $('top'), CONFIG.greeting); setClass(body, 'greeted', true); }
   checkNight();   // now, from the last forecast: not after the TV lists its apps, with the day look until then
   // LG's screensaver waits only when ours will show: not under a sheet (ours waits there), and not without photos.
   TV.holdScreenSaver(function () { return !sheetOpen() && (saverMode() === 'clock' || saverPhotos().length > 0); });
@@ -1707,6 +1815,7 @@
   renderTop();
   applyDim();
   tickClock();
+  playLofi();
   loadApps(function () {
     renderAll();
     restInDrawer();
@@ -1716,6 +1825,7 @@
     checkNight();
     Data.refresh();
     applyDim();   // automatic: medium from 22:00, off again at 07:00
+    setClass(body, 'autumn', CALM && autumn());   // the leaves stop on December 1
     if (!saverOn && !ambientOn && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) {
       if (saverMode() === 'clock') showAmbient(); else showSaver();
     }

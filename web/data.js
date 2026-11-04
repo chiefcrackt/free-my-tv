@@ -75,6 +75,12 @@ var Prefs = (function () {
     saver: function () { return pick('saver', 'photos') === 'clock' ? 'clock' : 'photos'; },
     /** Dimming over the picture, for a dark room: 'off', 'low', 'medium', 'high' or 'auto' (medium at night). */
     dim: function () { return pick('dim', 'off'); },
+    /** The lofi radio while Free My TV is on screen (Samsung, this fork): on by default. */
+    lofi: function () { return pick('lofi', true) === true; },
+    /** Its station, by name (home.js lists them): Lofi by default. */
+    lofiStation: function () { return pick('lofiStation', 'Lofi'); },
+    /** Its volume, in percent of the TV's: 10, 25 (the default), 50, 75 or 100. */
+    lofiVolume: function () { var n = pick('lofiVolume', 25); return [10, 25, 50, 75, 100].indexOf(n) >= 0 ? n : 25; },
     /** The weather card's forecast: 'hours' (the next 6 hours) or 'days' (the next 5 days). */
     forecast: function () { return pick('forecast', 'hours') === 'days' ? 'days' : 'hours'; },
     quotes: function () { return pick('quotes', CONFIG.showCrypto !== false); },

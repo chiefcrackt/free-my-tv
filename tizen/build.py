@@ -25,6 +25,8 @@ import webapp  # noqa: E402
 
 OUT = os.path.join(ROOT, 'out', 'tizen')
 WGT = os.path.join(ROOT, 'FreeMyTV-tizen.wgt')
+# This fork's Samsung look: a clock instead of the picks and tabs, no crypto, a calm background, and lofi radio.
+LOFI_DEFAULT = 'https://stream.laut.fm/lofi'
 
 
 def tizen_cli():
@@ -65,6 +67,7 @@ def build(preview, config, profile):
         manifest = f.read()
     app_id = re.search(r'<tizen:application id="([^"]+)"', manifest).group(1)
     version = re.search(r'<widget [^>]*version="([^"]+)"', manifest).group(1)
+    config = dict(config, calm=True, showCrypto=False, lofiUrl=config.get('lofiUrl') or LOFI_DEFAULT)
     app = webapp.files(config, 'tizen/build.py')
     for name in ('config.xml', 'icon.png'):
         with open(os.path.join(ROOT, 'tizen', name), 'rb') as f:
