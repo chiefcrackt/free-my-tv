@@ -63,13 +63,13 @@ const assert = require('assert/strict');
     }
     await page.clock.runFor(36000);
     assert.equal(await actor.isVisible(), false, 'there is a gap between dinosaurs');
-    await page.clock.runFor(90000);
+    await page.clock.runFor(45000);
     await actor.waitFor({state: 'visible'});
-    assert.match(await image(), /dino-trex/);
+    assert.match(await image(), /animal-fox/);
     await page.keyboard.press('ArrowRight'); // real remote activity also keeps the screensaver from timing out
-    await page.clock.runFor(126000);
+    await page.clock.runFor(61000);
     await actor.waitFor({state: 'visible'});
-    assert.match(await image(), /dino-longneck/);
+    assert.match(await image(), /runner-tristan/);
 
     await page.keyboard.press('ArrowDown');
     assert.equal(await actor.isVisible(), false, 'drawer hides the dinosaur immediately');
@@ -91,22 +91,26 @@ const assert = require('assert/strict');
     await page.clock.runFor(8100);
     await actor.waitFor({state: 'visible'});
     assert.equal(await actor.evaluate(node => node.parentNode.id), 'saver');
-    await page.clock.runFor(126000);
-    await actor.waitFor({state: 'visible'});
-    assert.match(await image(), /runner-tristan/, 'Tristan follows the three dinosaurs');
     assert.equal(await sprite.evaluate(node => node.style.backgroundSize), '512px 512px');
     assert.equal(await sprite.evaluate(node => node.style.imageRendering), 'auto');
     const runnerFrame = await sprite.evaluate(node => node.style.backgroundPosition);
     await page.clock.runFor(126);
     assert.notEqual(await sprite.evaluate(node => node.style.backgroundPosition), runnerFrame, '16-frame running cycle advances');
-    await page.clock.runFor(102000);
-    await actor.waitFor({state: 'visible'});
-    assert.match(await image(), /runner-travis/, 'Travis follows Tristan');
-    assert.equal(await actor.count(), 1);
-    await page.clock.runFor(102000);
-    await actor.waitFor({state: 'visible'});
-    assert.match(await image(), /dino-raptor/, 'rotation continues and wraps on the screensaver');
-    await page.keyboard.press('ArrowRight'); // a real wake also resets the idle timer after the longer five-visitor cycle
+    const remaining = [
+      ['animal-cat.png',12000], ['dino-trex-walk-v3.png',16000], ['animal-rabbit.png',36000],
+      ['runner-travis.png',16000], ['animal-cartoon-cat.png',12000], ['dino-longneck-walk-v3.png',16000],
+      ['animal-cartoon-dog.png',36000], ['dino-raptor-walk-v3.png',16000]
+    ];
+    for(const [file,previousDuration] of remaining) {
+      await page.clock.runFor(previousDuration+45000);
+      await actor.waitFor({state:'visible'});
+      assert((await image()).includes(file),'rotation reaches '+file+' in order');
+      assert.equal(await actor.count(),1,'only one visitor at a time');
+      const before=await sprite.evaluate(node=>node.style.backgroundPosition);
+      await page.clock.runFor(111);
+      assert.notEqual(await sprite.evaluate(node=>node.style.backgroundPosition),before,file+' has an advancing animation');
+    }
+    await page.keyboard.press('ArrowRight'); // a real wake resets the idle timer after the complete rotation
 
     // A background app has no walking timers, and returns to the normal Home lane when opened again.
     await page.evaluate(() => {
@@ -124,7 +128,7 @@ const assert = require('assert/strict');
     assert.equal(await actor.evaluate(node => node.parentNode.id), 'home');
     assert.equal(await actor.count(), 1);
     assert.deepEqual(errors, []);
-    console.log('Visitors: dinosaur and runner frame advance, five-character rotation/wrap, shelf/weather clearance, drawer suppression, both screensavers, and visibility lifecycle passed.');
+    console.log('Visitors: all ten characters animate and rotate with 45-second gaps; shelf clearance, drawer suppression, both screensavers and visibility lifecycle passed.');
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

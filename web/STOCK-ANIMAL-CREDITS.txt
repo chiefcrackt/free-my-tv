@@ -1,0 +1,20 @@
+Ready-made animal animations, all released as Creative Commons Zero (CC0 1.0 Universal).
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
+Pixel fox: hdst / HDST
+https://opengameart.org/content/fox-animated
+Original run PNG sheet; eight 19x16 frames.
+
+Pixel cat: Shepardskin
+https://opengameart.org/content/cat-sprites
+Original six-frame running GIF. Export uses the original purple palette background as a transparent color key.
+
+Rabbit: ScratchIO
+https://opengameart.org/content/animated-wild-animals
+Original Rabbit_Run.png; six 32x26 frames, mirrored for rightward travel.
+
+Cartoon cat and dog: pzUH
+https://opengameart.org/content/cat-dog-free-sprites
+Original Run (1)..Run (8) transparent PNG sequences, scaled without redrawing.
+
+Source files are retained in artwork/stock-animals. tools/export-stock-animals.cjs packs them into TV atlases.

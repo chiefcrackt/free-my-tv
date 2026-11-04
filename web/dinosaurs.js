@@ -1,15 +1,20 @@
-/* Dinosaurs and the original In Motion runners take turns on Home and both screensavers. No network or keys. */
+/* Dinosaurs, original In Motion runners and CC0 animals take turns on Home and both screensavers. No network or keys. */
 (function () {
   'use strict';
 
   var VISITORS = [
     {file: 'dino-raptor-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 35.483870967741936, duration: 36000},
-    {file: 'dino-trex-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 35.483870967741936, duration: 36000},
-    {file: 'dino-longneck-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 20.51282051282051, duration: 36000},
+    {file: 'animal-fox.png', columns: 4, rows: 2, count: 8, frameMs: 50, duration: 16000},
     {file: 'runner-tristan.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true},
-    {file: 'runner-travis.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true}
+    {file: 'animal-cat.png', columns: 3, rows: 2, count: 6, frameMs: 100, duration: 16000},
+    {file: 'dino-trex-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 35.483870967741936, duration: 36000},
+    {file: 'animal-rabbit.png', columns: 3, rows: 2, count: 6, frameMs: 90, duration: 16000},
+    {file: 'runner-travis.png', columns: 4, rows: 4, count: 16, frameMs: 31.25, duration: 12000, smooth: true},
+    {file: 'animal-cartoon-cat.png', columns: 4, rows: 2, count: 8, frameMs: 70, duration: 16000, smooth: true},
+    {file: 'dino-longneck-walk-v3.png', columns: 6, rows: 4, count: 24, stridePixels: 20.51282051282051, duration: 36000},
+    {file: 'animal-cartoon-dog.png', columns: 4, rows: 2, count: 8, frameMs: 70, duration: 16000, smooth: true}
   ];
-  var SIZE = 128, FIRST_MS = 8000, GAP_MS = 90000;
+  var SIZE = 128, FIRST_MS = 8000, GAP_MS = 45000;
   var active = null, generation = 0, next = 0, timer = 0, frames = 0, actor = null, sprite = null, image = null;
 
   function clear() {

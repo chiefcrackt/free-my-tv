@@ -321,12 +321,13 @@ look is used. Night mode retains a dark palette and hides the decorative sun.
 Reported drizzle, rain, showers and thunderstorms replace the fall/sunny looks with a cloudy sky and falling rain.
 Below 33°F still uses snow; reported snow also uses the snow look even slightly above freezing.
 
-### Dinosaur visitors on Samsung
+### Screen visitors on Samsung
 
-The turquoise raptor, orange T. rex, purple long-neck, Tristan and Travis take turns crossing Home and both screensavers.
+The three dinosaurs, Tristan, Travis, a pixel fox, a pixel cat, a rabbit, and a cartoon cat/dog pair take turns
+crossing Home and both screensavers. The groups are interleaved so the new animals appear throughout the rotation.
 On Home their entire 128-pixel frame stays above the app shelf and below the weather. On a screensaver they cross
 near the bottom, away from its clock and weather. Dinosaur walks last 36 seconds and runner crossings last 12 seconds,
-with a 90-second quiet gap; the first
+with a 45-second quiet gap (increased frequency from the original 90-second gap); the first
 visitor arrives about 8 seconds after opening Home or a screensaver. Visitors stop immediately under the drawer or
 settings, and when another app is in front. They do not take focus, intercept remote keys or reset the idle timer.
 
@@ -339,6 +340,9 @@ pose sheets are retained under `artwork/dinosaurs` for reference and are not pac
 Tristan and Travis use the original artwork and running rig from `chiefcrackt/links-inMotion` at commit
 `c2200ec0543d3a57290ef01af124a278a2186a96`, exported as 16-frame 4 × 4 PNG sheets (256-pixel frames, 32 fps).
 They preserve the original character artwork rather than redrawing it, and add no network requests.
+The five stock animals use their original CC0 running animations, with 16-second crossings. Sources and credits are
+in `web/STOCK-ANIMAL-CREDITS.txt`; original files are in `artwork/stock-animals`, and the atlas exporter is
+`tools/export-stock-animals.cjs`. No remote asset loading is needed on the TV.
 Browser regression checks are in `tests/dinosaurs.cjs`: build with
 `python3 tizen/build.py --preview`, then run the test with `playwright-core` and Chrome installed
 (`DINOSAUR_PLAYWRIGHT_MODULE` and `DINOSAUR_CHROME` can supply their locations).
